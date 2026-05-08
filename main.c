@@ -4,13 +4,20 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-int main() {
-  char buffer[128];
-  int lenArgs = 0;
-  while (strcmp(buffer, "exit")) {
-    char *args[10];
-    printf("tinyShell >");
+typedef struct {
+  char *name;
+  void (*func)(char **args);
+} builtincmds;
 
+void builtin_cd(char **args) { return; }
+void builtin_echo(char **args) { return; }
+int main() {
+  builtincmds builtins[] = {{"cd", builtin_cd}, {"echo", builtin_echo}};
+  char buffer[128] = "";
+  while (strcmp(buffer, "exit")) {
+    int lenArgs = 0;
+    char *args[10];
+    printf("tinyShell > ");
     fgets(buffer, 100, stdin);
     size_t terminatingChar = strcspn(buffer, "\n");
     buffer[terminatingChar] = '\0';
@@ -22,7 +29,9 @@ int main() {
       lenArgs++;
     }
     args[lenArgs] = NULL;
-
+    if (strcmp(args[0], "exit\n")) {
+      return 0;
+    }
     pid_t child_pid = fork();
     if (child_pid == -1) {
       perror("fork");
@@ -30,11 +39,9 @@ int main() {
     if (child_pid == 0) {
       execvp(args[0], args);
       perror("execvp");
-      printf("command has taken control of this child process. If this is "
-             "printed execvp encountered an error.");
     } else {
       waitpid(child_pid, NULL, 0);
-      printf("\n");
+      memset(args, 0, sizeof(args));
     }
   }
   return 0;
