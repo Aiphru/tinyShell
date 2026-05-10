@@ -32,12 +32,13 @@ void builtin_echo(char **args) {
 int main() {
   builtincmds builtins[] = {{"cd", builtin_cd},
                             {"echo", builtin_echo},
-                            {"exit", builtin_echo},
+                            {"exit", builtin_exit},
                             {"pwd", builtin_pwd}};
   char buffer[128] = "";
+  FILE *history;
+  int numBuiltIns = 4;
   while (strcmp(buffer, "exit")) {
     int lenArgs = 0;
-    int numBuiltIns = 4;
     char *args[10];
     char workingDir[128];
     getcwd(workingDir, sizeof(workingDir));
@@ -47,7 +48,6 @@ int main() {
     fgets(buffer, 100, stdin);
     size_t terminatingChar = strcspn(buffer, "\n");
     buffer[terminatingChar] = '\0';
-
     char *argvArr = strtok(buffer, " ");
     for (int i = 0; argvArr != NULL; i++) {
       args[i] = argvArr;
@@ -55,6 +55,9 @@ int main() {
       lenArgs++;
     }
     args[lenArgs] = NULL;
+    history = fopen(".tinyShell", "a");
+    fprintf(history, "%s\n", buffer);
+    fclose(history);
 
     for (int i = 0; i < numBuiltIns; i++) {
       if (strcmp(args[0], builtins[i].name) == 0) {
@@ -77,6 +80,7 @@ int main() {
         memset(args, 0, sizeof(args));
       }
     }
+
     isBuiltIn = false;
   }
   return 0;
