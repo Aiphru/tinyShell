@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -9,15 +10,40 @@ typedef struct {
   void (*func)(char **args);
 } builtincmds;
 
-void builtin_cd(char **args) { return; }
-void builtin_echo(char **args) { return; }
+void builtin_exit(char **args) { exit(0); }
+void builtin_cd(char **args) {
+  chdir(args[1]);
+  return;
+}
+void builtin_pwd(char **args) {
+  char pwd[256];
+  getcwd(pwd, sizeof(pwd));
+  printf("%s\n", pwd);
+  return;
+}
+void builtin_echo(char **args) {
+  for (int i = 1; args[i] != NULL; i++) {
+    printf("%s ", args[i]);
+  }
+  printf("\n");
+  return;
+}
+
 int main() {
-  builtincmds builtins[] = {{"cd", builtin_cd}, {"echo", builtin_echo}};
+  builtincmds builtins[] = {{"cd", builtin_cd},
+                            {"echo", builtin_echo},
+                            {"exit", builtin_echo},
+                            {"pwd", builtin_pwd}};
   char buffer[128] = "";
   while (strcmp(buffer, "exit")) {
     int lenArgs = 0;
+    int numBuiltIns = 4;
     char *args[10];
-    printf("tinyShell > ");
+    char workingDir[128];
+    getcwd(workingDir, sizeof(workingDir));
+    bool isBuiltIn = false;
+
+    printf("tinyShell %s > ", workingDir);
     fgets(buffer, 100, stdin);
     size_t terminatingChar = strcspn(buffer, "\n");
     buffer[terminatingChar] = '\0';
@@ -29,20 +55,29 @@ int main() {
       lenArgs++;
     }
     args[lenArgs] = NULL;
-    if (strcmp(args[0], "exit\n")) {
-      return 0;
+
+    for (int i = 0; i < numBuiltIns; i++) {
+      if (strcmp(args[0], builtins[i].name) == 0) {
+        builtins[i].func(args);
+        isBuiltIn = true;
+        break;
+      }
     }
-    pid_t child_pid = fork();
-    if (child_pid == -1) {
-      perror("fork");
+
+    if (!isBuiltIn) {
+      pid_t child_pid = fork();
+      if (child_pid == -1) {
+        perror("fork");
+      }
+      if (child_pid == 0) {
+        execvp(args[0], args);
+        perror("execvp");
+      } else {
+        waitpid(child_pid, NULL, 0);
+        memset(args, 0, sizeof(args));
+      }
     }
-    if (child_pid == 0) {
-      execvp(args[0], args);
-      perror("execvp");
-    } else {
-      waitpid(child_pid, NULL, 0);
-      memset(args, 0, sizeof(args));
-    }
+    isBuiltIn = false;
   }
   return 0;
 }
