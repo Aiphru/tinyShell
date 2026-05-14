@@ -6,22 +6,50 @@
 #include <unistd.h>
 #include <errno.h>
 
+
 typedef struct {
   char *name;
-  void (*func)(char **args);
+  void (*func)(char **args); 
 } builtincmds;
 
+extern const builtincmds builtins[];
+
 void builtin_exit(char **args) { exit(0); }
+
 void builtin_cd(char **args) {
+  if (args[1] == NULL){
+  	chdir("/home/andrea"); // change to user home
+  }
   chdir(args[1]);
   return;
 }
+
+void builtin_type(char **args){
+  if (args[1] == NULL) return;
+
+  for (int i=0;i<5;i++){
+    if (strcmp(args[1], builtins[i].name) == 0){
+	printf("%s is a builtin command\n",args[1]);
+	return;
+    }
+  }
+  char path[64] = "/usr/bin/";
+  strcat(path,*(args+1));
+  if (access(path, F_OK) == 0){
+  	printf("%s is %s\n",args[1],path);
+	return;
+  }
+  printf("type : %s: not found\n",args[1]);
+  return;
+}
+
 void builtin_pwd(char **args) {
   char pwd[256];
   getcwd(pwd, sizeof(pwd));
   printf("%s\n", pwd);
   return;
 }
+
 void builtin_echo(char **args) {
   for (int i = 1; args[i] != NULL; i++) {
     printf("%s ", args[i]);
@@ -30,15 +58,16 @@ void builtin_echo(char **args) {
   return;
 }
 
-int main() {
-  builtincmds builtins[] = {{"cd", builtin_cd},
+const builtincmds builtins[] = {{"cd", builtin_cd},
                             {"echo", builtin_echo},
                             {"exit", builtin_exit},
-                            {"pwd", builtin_pwd}};
+                            {"pwd", builtin_pwd},
+  			    {"type",builtin_type}};
+int main() {
   char buffer[128] = "";
   FILE *history;
-  int numBuiltIns = 4;
-  while (strcmp(buffer, "exit")) {
+  int numBuiltIns = 5;
+  while (1) {
     int lenArgs = 0;
     char *args[10];
     char workingDir[128];
