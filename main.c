@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <errno.h>
 
 typedef struct {
   char *name;
@@ -54,6 +55,7 @@ int main() {
       argvArr = strtok(NULL, " ");
       lenArgs++;
     }
+    if (lenArgs == 0) continue;
     args[lenArgs] = NULL;
     history = fopen(".tinyShell", "a");
     fprintf(history, "%s\n", buffer);
@@ -74,8 +76,14 @@ int main() {
       }
       if (child_pid == 0) {
         execvp(args[0], args);
-        perror("execvp");
-      } else {
+      	if (errno == ENOENT){
+	  fprintf(stderr,"%s: command not found\n",args[0]);
+	}
+	else{
+	perror("execvp");
+      	}
+      } 
+      else {
         waitpid(child_pid, NULL, 0);
         memset(args, 0, sizeof(args));
       }
