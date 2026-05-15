@@ -1,5 +1,5 @@
 #include "main.h"
-#include <unistd.h>
+#include <stdlib.h>
 
 typedef struct {
   char *name;
@@ -8,6 +8,10 @@ typedef struct {
 
 extern const builtincmds builtins[];
 extern int numBuiltIns;
+
+#define SHELL_NAME "tinyShell"
+#define MAX_BUFFER 128
+#define MAX_ARGS 25
 
 void builtin_exit(char **args) { exit(0); }
 
@@ -26,12 +30,10 @@ void builtin_cd(char **args) {
     if (home == NULL) {
       return;
     }
-    if (chdir(home) != 0) {
-      perror("cd");
-    }
+    chdir(home);
     return;
   }
-  chdir(args[1]); // crashes when cd into home(mby a permission issue?)
+  chdir(args[1]);
   return;
 }
 
@@ -71,22 +73,30 @@ void builtin_echo(char **args) {
 }
 
 void printShell() {
-  char workingDir[128];
+  char workingDir[MAX_BUFFER];
   getcwd(workingDir, sizeof(workingDir));
-  printf("tinyShell %s >", workingDir);
+  printf("%s %s >", SHELL_NAME, workingDir);
 }
 
-int parseInput(char *buffer, char **args) { return 1; }
+// int parseInput(char *buffer, char **args) { return 1; }
 
-void saveHistory(FILE *history, char *buffer) {
-  history = fopen("History", "a");
+void saveHistory(char *buffer) {
+  char *dest = getenv("HOME");
+  char destCpy[128];
+  strcpy(destCpy, dest);
+  strcat(destCpy, "History");
+  FILE *history = fopen(dest, "a");
+  if (history == NULL) {
+    return;
+  }
   fprintf(history, "%s\n", buffer);
   fclose(history);
+  return;
 }
 
 bool checkBuiltIns(char **args, int numBuiltIns) {
   for (int i = 0; i < numBuiltIns; i++) {
-    if (strcmp(args[i], builtins[i].name) == 0) {
+    if (strcmp(args[0], builtins[i].name) == 0) {
       builtins[i].func(args);
       return true;
     }
@@ -101,16 +111,15 @@ const builtincmds builtins[] = {{"help", builtin_help}, {"cd", builtin_cd},
 int numBuiltIns = sizeof(builtins) / sizeof(builtins[0]);
 
 int main() {
-  char buffer[128] = "";
-  FILE *history;
+  char buffer[MAX_BUFFER] = "";
   while (1) {
     int lenArgs = 0;
-    char *args[20];
+    char *args[MAX_ARGS];
     bool isBuiltIn = false;
 
     printShell();
 
-    fgets(buffer, 100, stdin);
+    fgets(buffer, MAX_BUFFER, stdin);
     size_t terminatingChar = strcspn(buffer, "\n");
     buffer[terminatingChar] = '\0';
     char *argvArr = strtok(buffer, " ");
@@ -122,12 +131,13 @@ int main() {
     if (lenArgs == 0)
       continue;
     args[lenArgs] = NULL;
-    saveHistory(history, buffer);
+    saveHistory(buffer);
     isBuiltIn = checkBuiltIns(args, numBuiltIns);
     if (!isBuiltIn) {
       pid_t child_pid = fork();
       if (child_pid == -1) {
         perror("fork");
+        exit(1);
       }
       if (child_pid == 0) {
         execvp(args[0], args);
