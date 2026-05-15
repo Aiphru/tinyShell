@@ -1,11 +1,4 @@
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/wait.h>
-#include <unistd.h>
-#include <errno.h>
-
+#include "main.h"
 
 typedef struct {
   char *name;
@@ -13,21 +6,32 @@ typedef struct {
 } builtincmds;
 
 extern const builtincmds builtins[];
+extern int numBuiltIns;
 
-void builtin_exit(char **args) { exit(0); }
+void builtin_exit(char **args) { exit(0);}
+
+void builtin_help(char **args) {
+  printf("Built in commands :\n");
+    //}
+  for (int i=0;i<numBuiltIns;i++){
+    printf("%s\n", builtins[i].name);
+  }
+}
 
 void builtin_cd(char **args) {
   if (args[1] == NULL){
-  	chdir("/home/andrea"); // change to user home
+    char *home = getenv("HOME");
+    chdir(home); 
+    return;
   }
-  chdir(args[1]);
+  chdir(args[1]);//crashes when cd into home(mby a permission issue?)
   return;
 }
 
 void builtin_type(char **args){
   if (args[1] == NULL) return;
 
-  for (int i=0;i<5;i++){
+  for (int i=0;i<numBuiltIns;i++){
     if (strcmp(args[1], builtins[i].name) == 0){
 	printf("%s is a builtin command\n",args[1]);
 	return;
@@ -58,46 +62,67 @@ void builtin_echo(char **args) {
   return;
 }
 
-const builtincmds builtins[] = {{"cd", builtin_cd},
+void printShell(){
+  char workingDir[128];
+  getcwd(workingDir, sizeof(workingDir));
+  printf("tinyShell %s >", workingDir);
+}
+
+int parseInput(char *buffer,char **args){
+  return 1;
+}
+
+void saveHistory(FILE *history, char *buffer){
+  history = fopen("History","a");
+  fprintf(history, "%s\n", buffer);
+  fclose(history);
+}
+
+bool checkBuiltIns(char **args,int numBuiltIns){
+  for (int i=0; i< numBuiltIns;i++){
+    if (strcmp(args[i],builtins[i].name) == 0){
+      builtins[i].func(args);
+      return true;
+    }
+  }
+    //}
+  return false;
+}
+
+const builtincmds builtins[] = 
+                            {
+                            {"help", builtin_help},
+                            {"cd", builtin_cd},
                             {"echo", builtin_echo},
                             {"exit", builtin_exit},
                             {"pwd", builtin_pwd},
-  			    {"type",builtin_type}};
+  			                    {"type",builtin_type}};
+
+int numBuiltIns = sizeof(builtins)/sizeof(builtins[0]);
+
 int main() {
   char buffer[128] = "";
   FILE *history;
-  int numBuiltIns = 5;
   while (1) {
     int lenArgs = 0;
-    char *args[10];
-    char workingDir[128];
-    getcwd(workingDir, sizeof(workingDir));
+    char *args[20];
     bool isBuiltIn = false;
-
-    printf("tinyShell %s > ", workingDir);
+    
+    printShell();
+    
     fgets(buffer, 100, stdin);
     size_t terminatingChar = strcspn(buffer, "\n");
     buffer[terminatingChar] = '\0';
     char *argvArr = strtok(buffer, " ");
-    for (int i = 0; argvArr != NULL; i++) {
+    for (int i = 0; argvArr != NULL && i<19; i++) {
       args[i] = argvArr;
       argvArr = strtok(NULL, " ");
       lenArgs++;
     }
     if (lenArgs == 0) continue;
     args[lenArgs] = NULL;
-    history = fopen(".tinyShell", "a");
-    fprintf(history, "%s\n", buffer);
-    fclose(history);
-
-    for (int i = 0; i < numBuiltIns; i++) {
-      if (strcmp(args[0], builtins[i].name) == 0) {
-        builtins[i].func(args);
-        isBuiltIn = true;
-        break;
-      }
-    }
-
+    saveHistory(history,buffer);
+    isBuiltIn = checkBuiltIns(args,numBuiltIns);
     if (!isBuiltIn) {
       pid_t child_pid = fork();
       if (child_pid == -1) {
