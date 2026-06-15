@@ -3,7 +3,7 @@
 
 typedef struct {
   char *name;
-  void (*func)(char **args);
+  int (*func)(char **args);
 } builtincmds;
 
 extern const builtincmds builtins[];
@@ -13,63 +13,71 @@ extern int numBuiltIns;
 #define MAX_BUFFER 128
 #define MAX_ARGS 25
 
-void builtin_exit(char **args) { exit(0); }
+int builtin_exit(char **args) { 
+  exit(0);
+  return 0;
+}
 
-void builtin_help(char **args) {
+int builtin_help(char **args) {
   printf("Built in commands :\n");
   for (int i = 0; i < numBuiltIns; i++) {
     printf("%s\n", builtins[i].name);
   }
+  return 0;
 }
 
-void builtin_cd(char **args) {
+int builtin_cd(char **args) {
   const char *home;
 
   if (args[1] == NULL) {
     home = getenv("HOME");
     if (home == NULL) {
-      return;
+      return 0;
     }
     chdir(home);
-    return;
+    return 0;
   }
-  chdir(args[1]);
-  return;
+  int res = chdir(args[1]);
+  if (res != 0) return -1;  
+  return 0;
 }
 
-void builtin_type(char **args) {
+int builtin_type(char **args) {
   if (args[1] == NULL)
-    return;
+    return 0;
 
   for (int i = 0; i < numBuiltIns; i++) {
     if (strcmp(args[1], builtins[i].name) == 0) {
       printf("%s is a builtin command\n", args[1]);
-      return;
+      return 0;
     }
   }
   char path[64] = "/usr/bin/";
   strcat(path, *(args + 1));
   if (access(path, F_OK) == 0) {
     printf("%s is %s\n", args[1], path);
-    return;
+    return 0;
   }
   printf("type : %s: not found\n", args[1]);
-  return;
+  return 1;
 }
 
-void builtin_pwd(char **args) {
+int builtin_pwd(char **args) {
   char pwd[256];
   getcwd(pwd, sizeof(pwd));
+  if (pwd == NULL){
+    return 1;
+  }
   printf("%s\n", pwd);
-  return;
+  return 0;
 }
 
-void builtin_echo(char **args) {
+int builtin_echo(char **args) {
   for (int i = 1; args[i] != NULL; i++) {
     printf("%s ", args[i]);
   }
   printf("\n");
-  return;
+  return 0;
 }
 
 void printShell() {
@@ -80,18 +88,18 @@ void printShell() {
 
 // int parseInput(char *buffer, char **args) { return 1; }
 
-void saveHistory(char *buffer) {
+int saveHistory(char *buffer) {
   char *dest = getenv("HOME");
   char destCpy[128];
   strcpy(destCpy, dest);
-  strcat(destCpy, "History");
-  FILE *history = fopen(dest, "a");
+  strcat(destCpy, "/History");
+  FILE *history = fopen(destCpy, "a");
   if (history == NULL) {
-    return;
+    return 0;
   }
   fprintf(history, "%s\n", buffer);
   fclose(history);
-  return;
+  return 1;
 }
 
 bool checkBuiltIns(char **args, int numBuiltIns) {
