@@ -38,13 +38,18 @@ int builtin_cd(char **args) {
     return 0;
   }
   int res = chdir(args[1]);
-  if (res != 0) return -1;  
+  if (res != 0){
+    fprintf(stderr,"No such file or directory\n");
+    return -1;
+  }
   return 0;
 }
 
 int builtin_type(char **args) {
-  if (args[1] == NULL)
-    return 0;
+  if (args[1] == NULL){
+    fprintf(stderr, "Usage: %s <command>\n",args[0]);
+    return -1; 
+  }
 
   for (int i = 0; i < numBuiltIns; i++) {
     if (strcmp(args[1], builtins[i].name) == 0) {
@@ -52,7 +57,11 @@ int builtin_type(char **args) {
       return 0;
     }
   }
-  char path[64] = "/usr/bin/";
+  char path[128] = "/usr/bin/";
+  if (strlen(args[1])>(sizeof(path)-10)){
+    fprintf(stderr, "Provided args is too long\n");  
+    return -1;
+  }
   strcat(path, *(args + 1));
   if (access(path, F_OK) == 0) {
     printf("%s is %s\n", args[1], path);
