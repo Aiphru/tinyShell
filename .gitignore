@@ -1,5 +1,6 @@
 *.out
 History
 .*
-testing.c
+testin*
+Makefile
 compile_flags.txt
