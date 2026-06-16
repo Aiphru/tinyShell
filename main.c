@@ -1,5 +1,12 @@
 #include "main.h"
-#include <stdlib.h>
+#include <readline/history.h>
+#include <stdio.h>
+#include <string.h>
+
+#define SHELL_NAME "tinyShell"
+#define HISTORY_FILE "readLinesHistory"
+#define MAX_BUFFER 128
+#define MAX_ARGS 25
 
 typedef struct {
   char *name;
@@ -9,11 +16,7 @@ typedef struct {
 extern const builtincmds builtins[];
 extern int numBuiltIns;
 
-#define SHELL_NAME "tinyShell"
-#define MAX_BUFFER 128
-#define MAX_ARGS 25
-
-int builtin_exit(char **args) { 
+int builtin_exit(char **args) {
   exit(0);
   return 0;
 }
@@ -50,33 +53,36 @@ int builtin_type(char **args) {
     fprintf(stderr, "Usage: %s <command>\n",args[0]);
     return -1; 
   }
-
   for (int i = 0; i < numBuiltIns; i++) {
     if (strcmp(args[1], builtins[i].name) == 0) {
       printf("%s is a builtin command\n", args[1]);
       return 0;
     }
   }
-  char path[128] = "/usr/bin/";
-  if (strlen(args[1])>(sizeof(path)-10)){
-    fprintf(stderr, "Provided args is too long\n");  
-    return -1;
+  char *path[16];
+  int count = 0;
+  char *pathStr = getenv("PATH");
+  char *copy_path = strdup(pathStr);
+  char* item = strtok(copy_path,":");
+  while (item != NULL){
+    path[count++] = item;
+    item = strtok(NULL,":");
   }
-  strcat(path, *(args + 1));
-  if (access(path, F_OK) == 0) {
-    printf("%s is %s\n", args[1], path);
-    return 0;
+  for (int i=0;i<count;i++){
+    char fullpath[1024];
+    snprintf(fullpath, sizeof(fullpath), "%s/%s", path[i], args[1]);
+    if (access(fullpath, F_OK) == 0){
+      printf("%s is %s\n", args[1], fullpath);
+      return 0;
+    }
   }
   printf("type : %s: not found\n", args[1]);
-  return 1;
+  return -1;
 }
 
 int builtin_pwd(char **args) {
   char pwd[256];
   getcwd(pwd, sizeof(pwd));
-  if (pwd == NULL){
-    return 1;
-  }
   printf("%s\n", pwd);
   return 0;
 }
@@ -168,8 +174,8 @@ int main() {
         memset(args, 0, sizeof(args));
       }
     }
-
     isBuiltIn = false;
   }
+  write_history(HISTORY_FILE);
   return 0;
 }
