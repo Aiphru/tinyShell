@@ -5,5 +5,3 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <readline/readline.h>
-#include <readline/history.h>

@@ -62,21 +62,25 @@ int builtin_type(char **args) {
   char *path[16];
   int count = 0;
   char *pathStr = getenv("PATH");
+  if (pathStr == NULL) return -1;
   char *copy_path = strdup(pathStr);
   char* item = strtok(copy_path,":");
   while (item != NULL){
     path[count++] = item;
     item = strtok(NULL,":");
   }
+
   for (int i=0;i<count;i++){
     char fullpath[1024];
     snprintf(fullpath, sizeof(fullpath), "%s/%s", path[i], args[1]);
     if (access(fullpath, F_OK) == 0){
       printf("%s is %s\n", args[1], fullpath);
+      free(copy_path);
       return 0;
     }
   }
   printf("type : %s: not found\n", args[1]);
+  free(copy_path);
   return -1;
 }
 
@@ -105,9 +109,9 @@ void printShell() {
 
 int saveHistory(char *buffer) {
   char *dest = getenv("HOME");
-  char destCpy[128];
+  char destCpy[1024];
   strcpy(destCpy, dest);
-  strcat(destCpy, "/History");
+  strcat(destCpy, HISTORY_FILE);
   FILE *history = fopen(destCpy, "a");
   if (history == NULL) {
     return 0;
@@ -146,7 +150,7 @@ int main() {
     size_t terminatingChar = strcspn(buffer, "\n");
     buffer[terminatingChar] = '\0';
     char *argvArr = strtok(buffer, " ");
-    for (int i = 0; argvArr != NULL && i < 19; i++) {
+    for (int i = 0; argvArr != NULL && i < MAX_ARGS-1; i++) {
       args[i] = argvArr;
       argvArr = strtok(NULL, " ");
       lenArgs++;
@@ -176,6 +180,5 @@ int main() {
     }
     isBuiltIn = false;
   }
-  write_history(HISTORY_FILE);
   return 0;
 }
