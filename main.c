@@ -1,7 +1,8 @@
 #include "headers.h"
+#include <stdlib.h>
 
 #define SHELL_NAME "tinyShell"
-#define HISTORY_FILE "readLinesHistory"
+#define HISTORY_FILE "/readLinesHistory"
 #define MAX_BUFFER 1024
 #define MAX_ARGS 64
 
@@ -10,23 +11,20 @@ typedef struct {
   int (*func)(char **args);
 } builtincmds;
 
-extern const builtincmds builtins[];
+extern const builtincmds builtIns[];
 extern int numBuiltIns;
 
-int builtin_exit(char **args) {
-  exit(0);
-  return 0;
-}
+int builtinExit(char **args) { exit(0); }
 
-int builtin_help(char **args) {
+int builtinHelp(char **args) {
   printf("Built in commands :\n");
   for (int i = 0; i < numBuiltIns; i++) {
-    printf("%s\n", builtins[i].name);
+    printf("%s\n", builtIns[i].name);
   }
   return 0;
 }
 
-int builtin_cd(char **args) {
+int builtinCd(char **args) {
   const char *home;
 
   if (args[1] == NULL) {
@@ -45,13 +43,13 @@ int builtin_cd(char **args) {
   return 0;
 }
 
-int builtin_type(char **args) {
+int builtinType(char **args) {
   if (args[1] == NULL) {
     fprintf(stderr, "Usage: %s <command>\n", args[0]);
     return -1;
   }
   for (int i = 0; i < numBuiltIns; i++) {
-    if (strcmp(args[1], builtins[i].name) == 0) {
+    if (strcmp(args[1], builtIns[i].name) == 0) {
       printf("%s is a builtin command\n", args[1]);
       return 0;
     }
@@ -61,8 +59,8 @@ int builtin_type(char **args) {
   char *pathStr = getenv("PATH");
   if (pathStr == NULL)
     return -1;
-  char *copy_path = strdup(pathStr);
-  char *item = strtok(copy_path, ":");
+  char *copyPath = strdup(pathStr);
+  char *item = strtok(copyPath, ":");
   while (item != NULL) {
     path[count++] = item;
     item = strtok(NULL, ":");
@@ -73,23 +71,23 @@ int builtin_type(char **args) {
     snprintf(fullpath, sizeof(fullpath), "%s/%s", path[i], args[1]);
     if (access(fullpath, F_OK) == 0) {
       printf("%s is %s\n", args[1], fullpath);
-      free(copy_path);
+      free(copyPath);
       return 0;
     }
   }
   printf("type : %s: not found\n", args[1]);
-  free(copy_path);
+  free(copyPath);
   return -1;
 }
 
-int builtin_pwd(char **args) {
+int builtinPwd(char **args) {
   char pwd[256];
   getcwd(pwd, sizeof(pwd));
   printf("%s\n", pwd);
   return 0;
 }
 
-int builtin_echo(char **args) {
+int builtinEcho(char **args) {
   for (int i = 1; args[i] != NULL; i++) {
     printf("%s ", args[i]);
   }
@@ -98,9 +96,12 @@ int builtin_echo(char **args) {
 }
 
 void printShell() {
+  char *name = getenv("LOGNAME");
+  char hostName[64];
+  getHostname(hostName, 64);
   char workingDir[MAX_BUFFER];
   getcwd(workingDir, sizeof(workingDir));
-  printf("%s %s >", SHELL_NAME, workingDir);
+  printf("%s@%s %s >", name, hostName, workingDir);
 }
 
 int saveHistory(char *buffer) {
@@ -119,35 +120,32 @@ int saveHistory(char *buffer) {
 
 bool checkBuiltIns(char **args, int numBuiltIns) {
   for (int i = 0; i < numBuiltIns; i++) {
-    if (strcmp(args[0], builtins[i].name) == 0) {
-      builtins[i].func(args);
+    if (strcmp(args[0], builtIns[i].name) == 0) {
+      builtIns[i].func(args);
       return true;
     }
   }
   return false;
 }
 
-const builtincmds builtins[] = {{"help", builtin_help}, {"cd", builtin_cd},
-                                {"echo", builtin_echo}, {"exit", builtin_exit},
-                                {"pwd", builtin_pwd},   {"type", builtin_type}};
+const builtincmds builtIns[] = {{"help", builtinHelp}, {"cd", builtinCd},
+                                {"echo", builtinEcho}, {"exit", builtinExit},
+                                {"pwd", builtinPwd},   {"type", builtinType}};
 
-int numBuiltIns = sizeof(builtins) / sizeof(builtins[0]);
+int numBuiltIns = sizeof(builtIns) / sizeof(builtIns[0]);
 
 int main() {
   char buffer[MAX_BUFFER] = "";
   while (1) {
-    int lenArgs = 0;
-    char *args[MAX_ARGS];
     bool isBuiltIn = false;
 
     printShell();
     fgets(buffer, MAX_BUFFER, stdin);
     char **arguments = parseInput(buffer);
-    for (int i = 0; arguments[i] != NULL; i++) {
-      lenArgs++;
-    }
-    if (lenArgs == 0)
+    if (arguments == NULL) {
+      free(arguments);
       continue;
+    }
     saveHistory(buffer);
     isBuiltIn = checkBuiltIns(arguments, numBuiltIns);
     if (!isBuiltIn) {
@@ -162,13 +160,17 @@ int main() {
           fprintf(stderr, "%s: command not found\n", arguments[0]);
         } else {
           perror("execvp");
+          _exit(child_pid);
         }
       } else {
         waitpid(child_pid, NULL, 0);
-        free(arguments);
       }
     }
     isBuiltIn = false;
+    for (int i = 0; arguments[i] != NULL; i++) {
+      free(arguments[i]);
+    }
+    free(arguments);
   }
   return 0;
 }

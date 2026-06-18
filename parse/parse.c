@@ -14,14 +14,15 @@ void save_token(char **args, int *argCount, char *buf, int *bufCount) {
 
 char **parseInput(char *command) {
   char *commandCpy = strdup(command);
-  commandCpy[strcspn(commandCpy, "\n")] = '\0';
   char buffer[1024] = {0};
   char quoteChar = 0;
   char *arguments[64];
   int argumentCount = 0;
   int bufferCount = 0;
   bool inQuotes = false;
-  for (int i = 0; i < strlen(commandCpy); i++) {
+  commandCpy[strcspn(commandCpy, "\n")] = '\0';
+  int commandCpyLength = strlen(commandCpy);
+  for (int i = 0; i < commandCpyLength; i++) {
     if ((commandCpy[i] == '"' || commandCpy[i] == '\'') && !inQuotes) {
       quoteChar = commandCpy[i];
       inQuotes = true;
@@ -46,9 +47,9 @@ char **parseInput(char *command) {
   for (int i = 0; i <= argumentCount; i++) {
     result[i] = arguments[i];
   }
+  if (arguments[0][0] == '\0')
+    return NULL;
+  result[argumentCount + 1] = NULL;
   free(commandCpy);
-  for (int i = 0; i <= argumentCount; i++) {
-    printf("[%d] : %s  ", i, result[i]);
-  }
   return result;
 }
