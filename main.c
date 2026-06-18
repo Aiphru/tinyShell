@@ -2,8 +2,8 @@
 
 #define SHELL_NAME "tinyShell"
 #define HISTORY_FILE "readLinesHistory"
-#define MAX_BUFFER 128
-#define MAX_ARGS 25
+#define MAX_BUFFER 1024
+#define MAX_ARGS 64
 
 typedef struct {
   char *name;
@@ -103,8 +103,6 @@ void printShell() {
   printf("%s %s >", SHELL_NAME, workingDir);
 }
 
-// int parseInput(char *buffer, char **args) { return 1; }
-
 int saveHistory(char *buffer) {
   char *dest = getenv("HOME");
   char destCpy[1024];
@@ -143,21 +141,15 @@ int main() {
     bool isBuiltIn = false;
 
     printShell();
-
     fgets(buffer, MAX_BUFFER, stdin);
-    size_t terminatingChar = strcspn(buffer, "\n");
-    buffer[terminatingChar] = '\0';
-    char *argvArr = strtok(buffer, " ");
-    for (int i = 0; argvArr != NULL && i < MAX_ARGS - 1; i++) {
-      args[i] = argvArr;
-      argvArr = strtok(NULL, " ");
+    char **arguments = parseInput(buffer);
+    for (int i = 0; arguments[i] != NULL; i++) {
       lenArgs++;
     }
     if (lenArgs == 0)
       continue;
-    args[lenArgs] = NULL;
     saveHistory(buffer);
-    isBuiltIn = checkBuiltIns(args, numBuiltIns);
+    isBuiltIn = checkBuiltIns(arguments, numBuiltIns);
     if (!isBuiltIn) {
       pid_t child_pid = fork();
       if (child_pid == -1) {
@@ -165,15 +157,15 @@ int main() {
         exit(1);
       }
       if (child_pid == 0) {
-        execvp(args[0], args);
+        execvp(arguments[0], arguments);
         if (errno == ENOENT) {
-          fprintf(stderr, "%s: command not found\n", args[0]);
+          fprintf(stderr, "%s: command not found\n", arguments[0]);
         } else {
           perror("execvp");
         }
       } else {
         waitpid(child_pid, NULL, 0);
-        memset(args, 0, sizeof(args));
+        free(arguments);
       }
     }
     isBuiltIn = false;
