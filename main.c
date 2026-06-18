@@ -1,7 +1,4 @@
-#include "main.h"
-#include <readline/history.h>
-#include <stdio.h>
-#include <string.h>
+#include "headers.h"
 
 #define SHELL_NAME "tinyShell"
 #define HISTORY_FILE "readLinesHistory"
@@ -41,17 +38,17 @@ int builtin_cd(char **args) {
     return 0;
   }
   int res = chdir(args[1]);
-  if (res != 0){
-    fprintf(stderr,"No such file or directory\n");
+  if (res != 0) {
+    fprintf(stderr, "No such file or directory\n");
     return -1;
   }
   return 0;
 }
 
 int builtin_type(char **args) {
-  if (args[1] == NULL){
-    fprintf(stderr, "Usage: %s <command>\n",args[0]);
-    return -1; 
+  if (args[1] == NULL) {
+    fprintf(stderr, "Usage: %s <command>\n", args[0]);
+    return -1;
   }
   for (int i = 0; i < numBuiltIns; i++) {
     if (strcmp(args[1], builtins[i].name) == 0) {
@@ -62,18 +59,19 @@ int builtin_type(char **args) {
   char *path[16];
   int count = 0;
   char *pathStr = getenv("PATH");
-  if (pathStr == NULL) return -1;
+  if (pathStr == NULL)
+    return -1;
   char *copy_path = strdup(pathStr);
-  char* item = strtok(copy_path,":");
-  while (item != NULL){
+  char *item = strtok(copy_path, ":");
+  while (item != NULL) {
     path[count++] = item;
-    item = strtok(NULL,":");
+    item = strtok(NULL, ":");
   }
 
-  for (int i=0;i<count;i++){
+  for (int i = 0; i < count; i++) {
     char fullpath[1024];
     snprintf(fullpath, sizeof(fullpath), "%s/%s", path[i], args[1]);
-    if (access(fullpath, F_OK) == 0){
+    if (access(fullpath, F_OK) == 0) {
       printf("%s is %s\n", args[1], fullpath);
       free(copy_path);
       return 0;
@@ -150,7 +148,7 @@ int main() {
     size_t terminatingChar = strcspn(buffer, "\n");
     buffer[terminatingChar] = '\0';
     char *argvArr = strtok(buffer, " ");
-    for (int i = 0; argvArr != NULL && i < MAX_ARGS-1; i++) {
+    for (int i = 0; argvArr != NULL && i < MAX_ARGS - 1; i++) {
       args[i] = argvArr;
       argvArr = strtok(NULL, " ");
       lenArgs++;
