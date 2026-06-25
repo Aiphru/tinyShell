@@ -1,4 +1,5 @@
 #include "parse/parse.c"
+#include "parse/piping.c"
 #include "utils/utils.c"
 #include <errno.h>
 #include <stdbool.h>
