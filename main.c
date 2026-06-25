@@ -149,12 +149,14 @@ int main() {
     saveHistory(buffer);
     isBuiltIn = checkBuiltIns(arguments, numBuiltIns);
     if (!isBuiltIn) {
+      signal(SIGINT,SIG_IGN);
       pid_t child_pid = fork();
       if (child_pid == -1) {
         perror("fork");
         exit(1);
       }
       if (child_pid == 0) {
+        signal(SIGINT,SIG_DFL);
         execvp(arguments[0], arguments);
         if (errno == ENOENT) {
           fprintf(stderr, "%s: command not found\n", arguments[0]);
@@ -164,6 +166,7 @@ int main() {
         }
       } else {
         waitpid(child_pid, NULL, 0);
+        signal(SIGINT,SIG_DFL);
       }
     }
     isBuiltIn = false;
