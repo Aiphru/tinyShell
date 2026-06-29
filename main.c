@@ -114,6 +114,7 @@ int saveHistory(char *buffer) {
   if (history == NULL) {
     return 0;
   }
+  if (strcmp(buffer,"\n") return;
   fprintf(history, "%s\n", buffer);
   fclose(history);
   return 1;
