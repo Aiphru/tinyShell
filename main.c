@@ -1,6 +1,4 @@
 #include "headers.h"
-#include <stdlib.h>
-#include <unistd.h>
 
 #define SHELL_NAME "tinyShell"
 #define HISTORY_FILE "/readLinesHistory"
@@ -114,8 +112,11 @@ int saveHistory(char *buffer) {
   if (history == NULL) {
     return 0;
   }
-  if (strcmp(buffer,"\n") return;
-  fprintf(history, "%s\n", buffer);
+  if (buffer[0] == '\n') {
+    fclose(history);
+    return -1;
+  }
+  fprintf(history, "%s", buffer);
   fclose(history);
   return 1;
 }
@@ -144,6 +145,7 @@ int main() {
     printShell();
 
     fgets(buffer, MAX_BUFFER, stdin);
+    saveHistory(buffer);
     char **arguments = parseInput(buffer);
     if (arguments == NULL) {
       free(arguments);
@@ -153,7 +155,6 @@ int main() {
       char ***pipedArguments = splitInputIntoPipable(arguments);
       continue;
     }
-    saveHistory(buffer);
     isBuiltIn = checkBuiltIns(arguments, numBuiltIns);
     if (!isBuiltIn) {
       signal(SIGINT, SIG_IGN);
