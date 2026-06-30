@@ -1,4 +1,7 @@
 #include "headers.h"
+#include <asm-generic/errno-base.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #define SHELL_NAME "tinyShell"
 #define HISTORY_FILE "/readLinesHistory"
@@ -153,6 +156,39 @@ int main() {
     }
     if (checkForPipe(arguments)) {
       char ***pipedArguments = splitInputIntoPipable(arguments);
+      int fd[2];
+      if (pipe(fd) == 0) {
+        pid_t first_child_pid = fork();
+        if (first_child_pid == -1) {
+          perror("fork");
+          exit(1);
+        }
+        if (first_child_pid == 0) {
+          dup2(fd[1], STDOUT_FILENO);
+          execvp(pipedArguments[0][0], pipedArguments[0]);
+          if (errno == ENOENT) {
+            fprintf(stderr, "%s : command not found\n", pipedArguments[0][0]);
+          }
+        }
+        pid_t second_child_pid = fork();
+        if (second_child_pid == -1) {
+          perror("fork");
+          exit(1);
+        }
+        if (second_child_pid == 0) {
+          dup2(fd[0], STDIN_FILENO);
+          execvp(pipedArguments[1][0], pipedArguments[1]);
+          if (errno == ENOENT) {
+            fprintf(stderr, "%s: command not found\n", pipedArguments[1][0]);
+          }
+        } else {
+          waitpid(first_child_pid, NULL, 0);
+          waitpid(second_child_pid, NULL, 0);
+        }
+        close(fd[0]);
+        close(fd[1]);
+      }
+
       continue;
     }
     isBuiltIn = checkBuiltIns(arguments, numBuiltIns);

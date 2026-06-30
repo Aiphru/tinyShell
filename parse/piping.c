@@ -27,7 +27,6 @@ char ***splitInputIntoPipable(char **args) {
       continue;
     }
     splitArgs[foundPipe][argsIndex++] = strdup(args[i]);
-    printf("foundPipe = %d\n", foundPipe);
   }
   splitArgs[0][arrOneLen] = NULL;
   splitArgs[foundPipe][argsIndex] = NULL;
