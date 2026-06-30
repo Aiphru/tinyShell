@@ -177,18 +177,20 @@ int main() {
         }
         if (second_child_pid == 0) {
           dup2(fd[0], STDIN_FILENO);
+          close(fd[0]);
+          close(fd[1]);
           execvp(pipedArguments[1][0], pipedArguments[1]);
           if (errno == ENOENT) {
             fprintf(stderr, "%s: command not found\n", pipedArguments[1][0]);
           }
         } else {
+          close(fd[0]);
+          close(fd[1]);
           waitpid(first_child_pid, NULL, 0);
           waitpid(second_child_pid, NULL, 0);
         }
-        close(fd[0]);
-        close(fd[1]);
       }
-
+      free(pipedArguments); // this frees only the first pointer
       continue;
     }
     isBuiltIn = checkBuiltIns(arguments, numBuiltIns);
