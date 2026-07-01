@@ -11,7 +11,7 @@ A minimal Unix shell written in C.
 
 ## Build
 ```sh
-gcc main.c headers.c utils/utils.c parse/parse.c parse/piping.c -o tinyshell
+gcc -o tinyshell
 ```
 
 ## Run
