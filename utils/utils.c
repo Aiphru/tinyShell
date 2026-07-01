@@ -15,3 +15,12 @@ char *getHostname(char *buffer, int len) {
   buffer[bufferLen] = '\0';
   return buffer;
 }
+
+char *trimWhiteSpace(char *string) {
+  int len = strlen(string);
+  while (len > 0 && string[len - 1] == ' ') {
+    string[len - 1] = '\0';
+    len--;
+  }
+  return string;
+}

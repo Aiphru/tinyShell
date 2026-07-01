@@ -39,10 +39,11 @@ char **parseInput(char *command) {
       save_token(arguments, &argumentCount, buffer, &bufferCount);
       continue;
     }
-    buffer[bufferCount++] = commandCpy[i];
+    buffer[bufferCount++] = (commandCpy[i]);
   }
   buffer[bufferCount] = '\0';
   arguments[argumentCount] = strdup(buffer);
+  trimWhiteSpace(arguments[argumentCount]);
   char **result = malloc(sizeof(char *) * (argumentCount + 2));
   for (int i = 0; i <= argumentCount; i++) {
     result[i] = arguments[i];

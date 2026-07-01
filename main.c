@@ -106,7 +106,7 @@ void printShell() {
   printf("%s@%s %s >", name, hostName, workingDir);
 }
 
-int saveHistory(char *buffer) {
+int saveHistory(char **args) {
   char *dest = getenv("HOME");
   char destCpy[1024];
   strcpy(destCpy, dest);
@@ -115,11 +115,10 @@ int saveHistory(char *buffer) {
   if (history == NULL) {
     return 0;
   }
-  if (buffer[0] == '\n') {
-    fclose(history);
-    return -1;
+  for (int i = 0; args[i] != NULL; i++) {
+    fprintf(history, "%s ", args[i]);
   }
-  fprintf(history, "%s", buffer);
+  fprintf(history, "\n");
   fclose(history);
   return 1;
 }
@@ -148,15 +147,16 @@ int main() {
     printShell();
 
     fgets(buffer, MAX_BUFFER, stdin);
-    saveHistory(buffer);
     char **arguments = parseInput(buffer);
     if (arguments == NULL) {
       free(arguments);
       continue;
     }
+    saveHistory(arguments);
     if (checkForPipe(arguments)) {
       char ***pipedArguments = splitInputIntoPipable(arguments);
       int fd[2];
+      printf("PIPE DETECTED \n");
       if (pipe(fd) == 0) {
         pid_t first_child_pid = fork();
         if (first_child_pid == -1) {
