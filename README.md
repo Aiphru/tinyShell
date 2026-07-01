@@ -22,12 +22,12 @@ gcc main.c -o tinyshell
 ## Structure
 ```
 .
-├── main.c            # entry point, REPL, exec/pipe logic, builtins
-├── headers.c         # hostname/env helpers
+├── main.c            
+├── headers.c        
 ├── .gitignore
 ├── utils/
-│   └── utils.c       # misc utilities
+│   └── utils.c       
 └── parse/
-    ├── parse.c       # input tokenizer
-    └── piping.c      # pipe detection & splitting
+    ├── parse.c       
+    └── piping.c      
 ```
