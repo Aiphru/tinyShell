@@ -184,58 +184,6 @@ int main()
       char ***pipedArguments = splitInputIntoPipable(arguments);
       runPipedCommands(pipedArguments, numPipes);
       continue;
-      int fd[2];
-      if (pipe(fd) == 0)
-      {
-        pid_t first_child_pid = fork();
-        if (first_child_pid == -1)
-        {
-          perror("fork");
-          exit(1);
-        }
-        if (first_child_pid == 0)
-        {
-          dup2(fd[1], STDOUT_FILENO);
-          close(fd[0]);
-          close(fd[1]);
-          execvp(pipedArguments[0][0], pipedArguments[0]);
-          fprintf(stderr, "Error : %s\n", strerror(errno));
-          if (errno == ENOENT)
-          {
-            fprintf(stderr, "%s : command not found\n", pipedArguments[0][0]);
-            exit(1);
-          }
-        }
-        pid_t second_child_pid = fork();
-        if (second_child_pid == -1)
-        {
-          perror("fork");
-          exit(1);
-        }
-        if (second_child_pid == 0)
-        {
-          dup2(fd[0], STDIN_FILENO);
-          close(fd[0]);
-          close(fd[1]);
-          execvp(pipedArguments[1][0], pipedArguments[1]);
-          fprintf(stderr, "Error : %s \n", strerror(errno));
-          if (errno == ENOENT)
-          {
-            fprintf(stderr, "%s: command not found\n", pipedArguments[1][0]);
-          }
-          close(fd[0]);
-          close(fd[1]);
-        }
-        else
-        {
-          close(fd[0]);
-          close(fd[1]);
-          waitpid(first_child_pid, NULL, 0);
-          waitpid(second_child_pid, NULL, 0);
-        }
-      }
-      free(pipedArguments); // this frees only the first pointer
-      continue;
     }
     isBuiltIn = checkBuiltIns(arguments, numBuiltIns);
     if (!isBuiltIn)

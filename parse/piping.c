@@ -14,31 +14,6 @@ int checkForPipe(char **args)
   return 0;
 }
 
-char ***splitInputIntoPipable(char **args)
-{
-  char ***splitArgs;
-  splitArgs = calloc(2, sizeof(char **));
-  splitArgs[0] = calloc(16, sizeof(char *));
-  splitArgs[1] = calloc(16, sizeof(char *));
-  int foundPipe = 0;
-  int arrOneLen = 0;
-  int argsIndex = 0;
-  for (int i = 0; args[i] != NULL; i++)
-  {
-    if (*args[i] == '|')
-    {
-      arrOneLen = argsIndex + 1;
-      foundPipe = 1;
-      argsIndex = 0;
-      continue;
-    }
-    splitArgs[foundPipe][argsIndex++] = strdup(args[i]);
-  }
-  splitArgs[0][arrOneLen] = NULL;
-  splitArgs[foundPipe][argsIndex] = NULL;
-  return splitArgs;
-}
-
 int getNumberOfPipes(char **args)
 {
   int count = 0;
@@ -52,7 +27,7 @@ int getNumberOfPipes(char **args)
   return count;
 }
 
-char ***splitInputIntoNPipable(char **args)
+char ***splitInputIntoPipable(char **args)
 {
   char ***splitArgs;
   int numPipes = getNumberOfPipes(args);
@@ -77,24 +52,24 @@ char ***splitInputIntoNPipable(char **args)
   {
     splitArgs[i][argsIndex] = NULL;
   }
-  splitArgs[numPipes][0] = NULL;
   return splitArgs;
 }
 
-void ***runPipedCommands(char ***pipedArgs, int numPipes)
+void runPipedCommands(char ***pipedArgs, int numPipes)
 {
+  numPipes++;
   int pipeFd[numPipes - 1][2];
   pid_t pids[numPipes];
+  for (int i = 0; i < numPipes - 1; i++)
+  {
+    if (pipe(pipeFd[i]) == -1)
+    {
+      perror("pipe");
+      exit(EXIT_FAILURE);
+    }
+  }
   for (int i = 0; i < numPipes; i++)
   {
-    if (i < numPipes - 1)
-    {
-      if (pipe(pipeFd[i]) == -1)
-      {
-        perror("pipe");
-        exit(EXIT_FAILURE);
-      }
-    }
     pids[i] = fork();
     if (pids[i] == -1)
     {
@@ -107,16 +82,16 @@ void ***runPipedCommands(char ***pipedArgs, int numPipes)
       {
         if (dup2(pipeFd[i - 1][0], STDIN_FILENO) == -1)
         {
-          perror("dup2");
-          exit(EXIT_FAILURE);
+          perror("dup2 stdin");
+          _exit(1);
         }
       }
       if (i < numPipes - 1)
       {
         if (dup2(pipeFd[i][1], STDOUT_FILENO) == -1)
         {
-          perror("dup2");
-          exit(EXIT_FAILURE);
+          perror("dup2 stdout");
+          _exit(1);
         }
       }
       for (int j = 0; j < numPipes - 1; j++)
@@ -128,13 +103,19 @@ void ***runPipedCommands(char ***pipedArgs, int numPipes)
       fprintf(stderr, "Error : %s\n", strerror(errno));
       if (errno == ENOENT)
       {
-        fprintf(stderr, "%s : command not found\n", pipedArgs[i][0]);
-        exit(1);
+        fprintf(stderr, "%s: command not found\n", pipedArgs[i][0]);
+        _exit(0);
       }
-      for (int i = 0; i < numPipes; i++)
-      {
-        waitpid(pids[i], NULL, 0);
-      }
+      _exit(0);
     }
+  }
+  for (int i = 0; i < numPipes - 1; i++)
+  {
+    close(pipeFd[i][0]);
+    close(pipeFd[i][1]);
+  }
+  for (int i = 0; i < numPipes; i++)
+  {
+    waitpid(pids[i], NULL, 0);
   }
 }
