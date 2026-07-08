@@ -156,7 +156,6 @@ int main() {
     if (checkForPipe(arguments)) {
       char ***pipedArguments = splitInputIntoPipable(arguments);
       int fd[2];
-      printf("PIPE DETECTED \n");
       if (pipe(fd) == 0) {
         pid_t first_child_pid = fork();
         if (first_child_pid == -1) {
@@ -165,9 +164,13 @@ int main() {
         }
         if (first_child_pid == 0) {
           dup2(fd[1], STDOUT_FILENO);
+          close(fd[0]);
+          close(fd[1]);
           execvp(pipedArguments[0][0], pipedArguments[0]);
+          fprintf(stderr, "Error : %s\n", strerror(errno));
           if (errno == ENOENT) {
             fprintf(stderr, "%s : command not found\n", pipedArguments[0][0]);
+            exit(1);
           }
         }
         pid_t second_child_pid = fork();
@@ -180,9 +183,12 @@ int main() {
           close(fd[0]);
           close(fd[1]);
           execvp(pipedArguments[1][0], pipedArguments[1]);
+          fprintf(stderr, "Error : %s \n", strerror(errno));
           if (errno == ENOENT) {
             fprintf(stderr, "%s: command not found\n", pipedArguments[1][0]);
           }
+          close(fd[0]);
+          close(fd[1]);
         } else {
           close(fd[0]);
           close(fd[1]);

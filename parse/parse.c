@@ -5,6 +5,8 @@
 
 #define MAX_BUFFER_SIZE 1024
 
+char *trimWhiteSpace(char *string);
+
 void save_token(char **args, int *argCount, char *buf, int *bufCount) {
   buf[*bufCount] = '\0';
   args[*argCount] = strdup(buf);
@@ -42,15 +44,19 @@ char **parseInput(char *command) {
     buffer[bufferCount++] = (commandCpy[i]);
   }
   buffer[bufferCount] = '\0';
-  arguments[argumentCount] = strdup(buffer);
-  trimWhiteSpace(arguments[argumentCount]);
-  char **result = malloc(sizeof(char *) * (argumentCount + 2));
-  for (int i = 0; i <= argumentCount; i++) {
+  if (bufferCount > 0) {
+    arguments[argumentCount] = strdup(buffer);
+    argumentCount++;
+  }
+  if (argumentCount == 0) {
+    free(commandCpy);
+    return NULL;
+  }
+  char **result = malloc(sizeof(char *) * (argumentCount + 1));
+  for (int i = 0; i < argumentCount; i++) {
     result[i] = arguments[i];
   }
-  if (arguments[0][0] == '\0')
-    return NULL;
-  result[argumentCount + 1] = NULL;
+  result[argumentCount] = NULL;
   free(commandCpy);
   return result;
 }
