@@ -180,7 +180,10 @@ int main()
     saveHistory(arguments);
     if (checkForPipe(arguments))
     {
+      int numPipes = getNumberOfPipes(arguments);
       char ***pipedArguments = splitInputIntoPipable(arguments);
+      runPipedCommands(pipedArguments, numPipes);
+      continue;
       int fd[2];
       if (pipe(fd) == 0)
       {

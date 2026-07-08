@@ -5,7 +5,7 @@ A minimal Unix shell written in C.
 ## Features
 - Builtins: `cd`, `pwd`, `echo`, `type`, `help`, `exit`
 - External command execution via `fork`/`execvp`
-- Basic single-pipe support (`cmd1 | cmd2`)
+- Basic multi-pipe support (`cmd1 | cmd2`)
 - Quoted argument parsing (`"..."` / `'...'`)
 - Command history saved to `~/readLinesHistory`
 
