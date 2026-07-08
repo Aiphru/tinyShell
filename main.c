@@ -167,7 +167,6 @@ int main()
   while (1)
   {
     bool isBuiltIn = false;
-
     printShell();
 
     fgets(buffer, MAX_BUFFER, stdin);
@@ -178,49 +177,21 @@ int main()
       continue;
     }
     saveHistory(arguments);
-    if (checkForPipe(arguments))
+    int numCommands = getNumberOfPipes(arguments) + 1;
+    if (numCommands > 1)
     {
-      int numPipes = getNumberOfPipes(arguments);
       char ***pipedArguments = splitInputIntoPipable(arguments);
-      runPipedCommands(pipedArguments, numPipes);
+      runPipedCommands(pipedArguments, numCommands);
+      freePipedArguments(pipedArguments, numCommands);
       continue;
     }
     isBuiltIn = checkBuiltIns(arguments, numBuiltIns);
     if (!isBuiltIn)
     {
-      signal(SIGINT, SIG_IGN);
-      pid_t child_pid = fork();
-      if (child_pid == -1)
-      {
-        perror("fork");
-        exit(1);
-      }
-      if (child_pid == 0)
-      {
-        signal(SIGINT, SIG_DFL);
-        execvp(arguments[0], arguments);
-        if (errno == ENOENT)
-        {
-          fprintf(stderr, "%s: command not found\n", arguments[0]);
-        }
-        else
-        {
-          perror("execvp");
-          _exit(child_pid);
-        }
-      }
-      else
-      {
-        waitpid(child_pid, NULL, 0);
-        signal(SIGINT, SIG_DFL);
-      }
+      executeCommand(arguments);
     }
     isBuiltIn = false;
-    for (int i = 0; arguments[i] != NULL; i++)
-    {
-      free(arguments[i]);
-    }
-    free(arguments);
+    freeArguments(arguments);
   }
   return 0;
 }

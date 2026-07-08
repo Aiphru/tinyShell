@@ -2,18 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-int checkForPipe(char **args)
-{
-  for (int i = 0; args[i] != NULL; i++)
-  {
-    if (*args[i] == '|')
-    {
-      return 1;
-    }
-  }
-  return 0;
-}
-
 int getNumberOfPipes(char **args)
 {
   int count = 0;
@@ -57,7 +45,6 @@ char ***splitInputIntoPipable(char **args)
 
 void runPipedCommands(char ***pipedArgs, int numPipes)
 {
-  numPipes++;
   int pipeFd[numPipes - 1][2];
   pid_t pids[numPipes];
   for (int i = 0; i < numPipes - 1; i++)
